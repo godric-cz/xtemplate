@@ -73,6 +73,14 @@ class XTemplate {
   }
 
   /**
+   * Get/set caching directory for templates (null = same as template)
+   */
+  static function cache(/* variadic set/get */) {
+    if(func_num_args() == 1) self::$cacheDir = func_get_arg(0);
+    else return self::$cacheDir;
+  }
+
+  /**
    * Returns block's parsed contents
    */
   function text($block) {
