@@ -153,14 +153,18 @@ class XTemplate {
     $cFile = self::$cacheDir ?  // comiled file name
       self::$cacheDir . '/' . md5($file) . '.php' :
       dirname($file) . '/' . basename($file, '.xtpl') . '.xtpc';
-    $cName = str_replace('-', '', ucfirst(basename($file, '.xtpl'))) . 'Tpl'; // compiled class name
+    $cName = generateClassName($file);
+
     // main template modification check & load
-    if( @filemtime($cFile) < filemtime($file) ) {
+    $compiledModified = @filemtime($cFile);
+    $templateModified = filemtime($file);
+    if($compiledModified < $templateModified || $compiledModified < libraryModified()) {
       $this->outlineRead($file);
       file_put_contents($cFile, $this->outlineCompiled($cName));
     }
     require_once($cFile);
     $t = new $cName();
+
     // dependecies modification check
     $modified = false;
     foreach($t->dependencies as $d) {
@@ -171,6 +175,7 @@ class XTemplate {
       }
     }
     if($modified) throw new XTemplateRecompilationException();
+
     // return
     return $t;
   }
@@ -278,3 +283,28 @@ abstract class XTemplateException extends Exception {}
  * modification
  */
 class XTemplateRecompilationException extends Exception {}
+
+/**
+ * Function for generation of unique but semi-readable classnames for compiled
+ * templates.
+ */
+function generateClassName($path) {
+  $random = md5($path);
+  $random = hexdec(substr($random, 0, 8)); // 4 bytes
+  $random = substr((string) $random, -6);
+
+  $safeName = str_replace('-', '', ucfirst(basename($path, '.xtpl')));
+
+  return $safeName . $random . 'Tpl';
+}
+
+/**
+ * @return cached modification time of this file
+ */
+function libraryModified() {
+  static $modified = null;
+  if ($modified === null) {
+    $modified = filemtime(__FILE__);
+  }
+  return $modified;
+}
